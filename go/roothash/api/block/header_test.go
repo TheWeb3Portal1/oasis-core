@@ -16,13 +16,13 @@ import (
 func TestConsistentHash(t *testing.T) {
 	// NOTE: These hashes MUST be synced with runtime/src/common/roothash.rs.
 	var emptyHeaderHash hash.Hash
-	_ = emptyHeaderHash.UnmarshalHex("4a7526c9ce073f69f9bbc3f88170aaee91c63c4cf929b2ef2f758fc26d23d78b")
+	_ = emptyHeaderHash.UnmarshalHex("677ad1a6b9f5e99ed94e5d598b6f92a4641a5f952f2d753b2a6122b6dceeb792")
 
 	var empty Header
 	require.EqualValues(t, emptyHeaderHash.String(), empty.EncodedHash().String())
 
 	var populatedHeaderHash hash.Hash
-	_ = populatedHeaderHash.UnmarshalHex("cf1971df10ea8202fbdfaf567179ace4dea9987199ff3e6ccef1be1ab43e757a")
+	_ = populatedHeaderHash.UnmarshalHex("1c58bf1c22da5435d8889a334e6ca3a535e42e222201c3d6288a37413bccf12b")
 
 	var emptyRoot hash.Hash
 	emptyRoot.Empty()

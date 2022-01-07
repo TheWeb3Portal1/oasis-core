@@ -10,9 +10,10 @@ use crate::{
     common::{
         crypto::{hash::Hash, signature::PublicKey},
         namespace::Namespace,
+        quantity::Quantity,
         versioned::Versioned,
     },
-    consensus::{registry, staking, state::StateError},
+    consensus::{address::Address, registry, staking, state::StateError},
 };
 
 /// Errors emitted by the roothash module.
@@ -127,6 +128,37 @@ impl MessageEvent {
     }
 }
 
+/// An incoming message emitted by the consensus layer to be processed by the runtime.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, cbor::Encode, cbor::Decode)]
+pub struct IncomingMessage {
+    /// Unique identifier of the message.
+    pub id: u64,
+    /// Address of the caller authenticated by the consensus layer.
+    pub caller: Address,
+    /// Fee sent into the runtime as part of the message being sent. The fee is transferred before
+    /// the message is processed by the runtime.
+    #[cbor(optional, default, skip_serializing_if = "num_traits::Zero::is_zero")]
+    pub fee: Quantity,
+    /// Tokens sent into the runtime as part of the message being sent. The tokens are transferred
+    /// before the message is processed by the runtime.
+    #[cbor(optional, default, skip_serializing_if = "num_traits::Zero::is_zero")]
+    pub tokens: Quantity,
+    /// Arbitrary runtime-dependent data.
+    #[cbor(optional, default, skip_serializing_if = "Vec::is_empty")]
+    pub data: Vec<u8>,
+}
+
+impl IncomingMessage {
+    /// Returns a hash of provided runtime messages.
+    pub fn in_messages_hash(msgs: &[IncomingMessage]) -> Hash {
+        if msgs.is_empty() {
+            // Special case if there are no messages.
+            return Hash::empty_hash();
+        }
+        Hash::digest_bytes(&cbor::to_vec(msgs.to_vec()))
+    }
+}
+
 /// Information about how a particular round was executed by the consensus layer.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, cbor::Encode, cbor::Decode)]
 pub struct RoundResults {
@@ -168,6 +200,8 @@ pub struct Header {
     pub state_root: Hash,
     /// Messages hash.
     pub messages_hash: Hash,
+    /// Hash of processed incoming messages.
+    pub in_msgs_hash: Hash,
 }
 
 impl Header {
@@ -201,6 +235,13 @@ pub struct ComputeResultsHeader {
     /// Hash of messages sent from this batch.
     #[cbor(optional)]
     pub messages_hash: Option<Hash>,
+
+    /// The hash of processed incoming messages.
+    #[cbor(optional)]
+    pub in_msgs_hash: Option<Hash>,
+    /// The number of processed incoming messages.
+    #[cbor(optional, default, skip_serializing_if = "num_traits::Zero::is_zero")]
+    pub in_msgs_count: u32,
 }
 
 impl ComputeResultsHeader {
@@ -223,7 +264,7 @@ mod tests {
         let empty = Header::default();
         assert_eq!(
             empty.encoded_hash(),
-            Hash::from("4a7526c9ce073f69f9bbc3f88170aaee91c63c4cf929b2ef2f758fc26d23d78b")
+            Hash::from("677ad1a6b9f5e99ed94e5d598b6f92a4641a5f952f2d753b2a6122b6dceeb792")
         );
 
         let populated = Header {
@@ -236,11 +277,11 @@ mod tests {
             io_root: Hash::empty_hash(),
             state_root: Hash::empty_hash(),
             messages_hash: Hash::empty_hash(),
-            ..Default::default()
+            in_msgs_hash: Hash::empty_hash(),
         };
         assert_eq!(
             populated.encoded_hash(),
-            Hash::from("cf1971df10ea8202fbdfaf567179ace4dea9987199ff3e6ccef1be1ab43e757a")
+            Hash::from("1c58bf1c22da5435d8889a334e6ca3a535e42e222201c3d6288a37413bccf12b")
         );
     }
 
@@ -259,10 +300,11 @@ mod tests {
             io_root: Some(Hash::empty_hash()),
             state_root: Some(Hash::empty_hash()),
             messages_hash: Some(Hash::empty_hash()),
+            in_msgs_hash: Some(Hash::empty_hash()),
         };
         assert_eq!(
             populated.encoded_hash(),
-            Hash::from("430ff02fafc53fc0e5eb432ad3e8b09167842a3948e09a7ee4bdd88e83e01d5a")
+            Hash::from("8459a9e6e3341cd2df5ada5737469a505baf92397aaa88b7100915324506d843")
         );
     }
 
