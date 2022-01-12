@@ -315,7 +315,7 @@ func New(dataDir string, identity *identity.Identity, genesisProvider genesis.Pr
 
 	p2pCfg := config.DefaultP2PConfig()
 	p2pCfg.ListenAddress = viper.GetString(tmcommon.CfgCoreListenAddress)
-	p2pCfg.BootstrapPeers = strings.ToLower(strings.Join(viper.GetStringSlice(tmcommon.CfgP2PSeed), ","))
+	p2pCfg.PersistentPeers = strings.ToLower(strings.Join(viper.GetStringSlice(tmcommon.CfgP2PSeed), ","))
 	p2pCfg.ExternalAddress = viper.GetString(tmcommon.CfgCoreExternalAddress)
 	p2pCfg.MaxNumInboundPeers = viper.GetInt(tmcommon.CfgP2PMaxNumInboundPeers)
 	p2pCfg.MaxNumOutboundPeers = viper.GetInt(tmcommon.CfgP2PMaxNumOutboundPeers)
