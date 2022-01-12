@@ -810,16 +810,19 @@ func (t *fullService) GetStatus(ctx context.Context) (*consensusAPI.Status, erro
 		// List of consensus peers.
 		status.NodePeers = []string{}
 		rpcenv := t.node.RPCEnvironment()
-		if rpcenv.P2PPeers != nil {
-			p2pPeers := rpcenv.P2PPeers.Peers()
-			if p2pPeers != nil {
-				tmpeers := p2pPeers.List()
-				peers := make([]string, 0, len(tmpeers))
-				for _, tmpeer := range tmpeers {
-					p := string(tmpeer.ID()) + "@" + tmpeer.RemoteAddr().String()
-					peers = append(peers, p)
+		if rpcenv != nil {
+			if rpcenv.PeerManager != nil {
+				p2pPeers := rpcenv.PeerManager.Peers()
+				if p2pPeers != nil {
+					peers := make([]string, 0, len(p2pPeers))
+					for _, peer := range p2pPeers {
+						addrs := rpcenv.PeerManager.Addresses(peer)
+						for _, addr := range addrs {
+							peers = append(peers, addr.String())
+						}
+					}
+					status.NodePeers = peers
 				}
-				status.NodePeers = peers
 			}
 		}
 
